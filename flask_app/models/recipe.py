@@ -1,0 +1,94 @@
+# import the function that will return an instance of a connection
+from pprint import pprint
+from flask_app.config.mysqlconnection import connectToMySQL
+from flask_app import flash
+# model the class after the recipe table from our database
+
+DATABASE = 'recipes'
+
+class Recipe:
+    def __init__( self , data ):
+        self.id = data['id']
+        self.name = data['name']
+        self.description = data['description']
+        self.instructions = data['instructions']
+        self.date_made = data['date_made']
+        self.under_30 = data['under_30']
+        self.user_id = data['user_id']
+        if 'first_name' in data:
+            self.first_name = data ['first_name']
+        self.created_at = data['created_at']
+        self.updated_at = data['updated_at']
+    # Now we use class methods to query our database
+
+    
+    # ! READ ALL
+    @classmethod
+    def get_all(cls):
+        query = "SELECT * FROM recipes;"
+        # make sure to call the connectToMySQL function with the schema you are targeting.
+        results = connectToMySQL(DATABASE).query_db(query)
+        pprint(results)
+        # Create an empty list to append our instances of recipes
+        recipes = []
+        # Iterate over the db results and create instances of recipes with cls.
+        for recipe in results:
+            recipes.append( cls(recipe) )
+        return recipes
+        
+    @classmethod
+    def get_all_with_user(cls):
+        query = "SELECT * FROM recipes JOIN users ON recipes.user_id = users.id;"
+        # make sure to call the connectToMySQL function with the schema you are targeting.
+        results = connectToMySQL(DATABASE).query_db(query)
+        print(results)
+        # Create an empty list to append our instances of recipes
+        recipes = []
+        # Iterate over the db results and create instances of recipes with cls.
+        for recipe in results:
+            recipes.append( cls(recipe) )
+        return recipes
+
+    # ! READ/RETRIEVE ONE
+    @classmethod
+    def get_one(cls,data):
+        query = "SELECT * FROM recipes WHERE id = %(id)s;"
+        result = connectToMySQL(DATABASE).query_db(query, data)
+        recipe = Recipe(result[0])
+        return recipe
+    
+
+
+
+    # ! CREATE
+    @classmethod
+    def save(cls, data):
+        query = "INSERT INTO recipes (name, description, date_made, under_30, user_id, instructions) VALUES (%(name)s, %(description)s,  %(date_made)s, %(under_30)s, %(user_id)s, %(instructions)s);"
+        return connectToMySQL(DATABASE).query_db(query, data)
+
+    # ! UPDATE
+    @classmethod
+    def update(cls,data):
+        query = "UPDATE recipes SET name = %(name)s, description = %(description)s, instructions = %(instructions)s, date_made = %(date_made)s, under_30 = %(under_30)s, user_id = %(user_id)s WHERE id = %(id)s ;"
+        return connectToMySQL(DATABASE).query_db(query, data)
+
+
+    # ! DELETE
+    @classmethod
+    def destroy(cls, data):
+        query = "DELETE FROM recipes WHERE id = %(id)s;"
+        return connectToMySQL(DATABASE).query_db(query, data)
+
+    @staticmethod
+    def validate_recipe(recipe:dict) -> bool:
+        is_valid = True
+        if len(recipe['name']) < 3:
+            is_valid = False
+            flash("Name must be at least 3 chars", 'first_name')
+            is_valid = False
+        if len(recipe['description']) < 3:
+            flash("Name must be at least 3 chars" 'desrcription')
+        if len(recipe['instructions']) < 3:
+            is_valid = False
+            flash("Name must be at least 3 chars", 'instructions')
+        return is_valid
